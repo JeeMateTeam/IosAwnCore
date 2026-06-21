@@ -15,11 +15,11 @@ Pod::Spec.new do |s|
 Awesome Notifications Ios Core (Only iOS devices).
                        DESC
 
-  s.homepage         = 'https://github.com/rafaelsetragni/IosAwnCore'
+  s.homepage         = 'https://github.com/JeeMateTeam/IosAwnCore'
   # s.screenshots     = 'www.example.com/screenshots_1', 'www.example.com/screenshots_2'
   s.license          = { :type => 'Apache License, Version 2.0', :file => 'LICENSE' }
   s.author           = { 'Rafael Setragni' => '40064496+rafaelsetragni@users.noreply.github.com' }
-  s.source           = { :git => 'https://github.com/rafaelsetragni/IosAwnCore.git', :tag => s.version.to_s }
+  s.source           = { :git => 'https://github.com/JeeMateTeam/IosAwnCore.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
   
   s.static_framework = true
