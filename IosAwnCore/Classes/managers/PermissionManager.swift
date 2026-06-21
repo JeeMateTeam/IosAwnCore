@@ -502,6 +502,9 @@ public class PermissionManager {
             case .enabled:
                 return NotificationPermissionStatus.granted.rawValue
             case .notSupported:
+                if isBaseNotificationAuthorizationGranted(settings) {
+                    return NotificationPermissionStatus.notDetermined.rawValue
+                }
                 return NotificationPermissionStatus.notSupported.rawValue
             default:
                 break
@@ -524,6 +527,33 @@ public class PermissionManager {
         return settings.authorizationStatus == .authorized
     }
 
+    @available(iOS 12.0, *)
+    private func isCriticalAlertEntitlementMissing(_ settings: UNNotificationSettings) -> Bool {
+        return settings.criticalAlertSetting == .notSupported &&
+            !isBaseNotificationAuthorizationGranted(settings)
+    }
+
+    @available(iOS 12.0, *)
+    private func shouldRequestCriticalAlertAuthorization(_ settings: UNNotificationSettings) -> Bool {
+        if settings.criticalAlertSetting == .disabled {
+            return true
+        }
+        if settings.criticalAlertSetting == .notSupported &&
+            isBaseNotificationAuthorizationGranted(settings) {
+            return true
+        }
+        return false
+    }
+
+    private func iosCriticalAlertAuthorizationPermissions() -> [String] {
+        return [
+            NotificationPermission.Alert.rawValue,
+            NotificationPermission.Sound.rawValue,
+            NotificationPermission.Badge.rawValue,
+            NotificationPermission.CriticalAlert.rawValue
+        ]
+    }
+
     private func requestCriticalAlertPermissionIfNeeded(
         permissionsNeeded:[String],
         permissionsRequested:[String],
@@ -541,7 +571,7 @@ public class PermissionManager {
         guard isBaseNotificationAuthorizationGranted(settings) else { return false }
         guard settings.criticalAlertSetting != .enabled else { return false }
 
-        if settings.criticalAlertSetting == .notSupported {
+        if isCriticalAlertEntitlementMissing(settings) {
             Logger.shared.e(self.TAG,
                 "Critical Alerts are not available for this project. " +
                 "You must require Apple special permissions to use it. " +
@@ -550,11 +580,11 @@ public class PermissionManager {
             return true
         }
 
-        if settings.criticalAlertSetting == .disabled {
+        if shouldRequestCriticalAlertAuthorization(settings) {
             self.showRequestDialog(
                 channelKey: nil,
                 permissionsNeeded: permissionsNeeded,
-                permissionsToRequest: [NotificationPermission.CriticalAlert.rawValue],
+                permissionsToRequest: iosCriticalAlertAuthorizationPermissions(),
                 permissionCompletion: permissionCompletion)
             return true
         }
@@ -604,7 +634,7 @@ public class PermissionManager {
                         if #available(iOS 12.0, *) {
                             if permissionsRequested.contains(NotificationPermission.CriticalAlert.rawValue) ||
                                 permissionsRequested.contains(NotificationPermission.OverrideDnD.rawValue){
-                                if(settings.criticalAlertSetting == .notSupported){
+                                if isCriticalAlertEntitlementMissing(settings) {
                                     Logger.shared.e(self.TAG,
                                         "Critical Alerts are not available for this project. " +
                                         "You must require Apple special permissions to use it. " +
@@ -660,11 +690,11 @@ public class PermissionManager {
                                     case .OverrideDnD: fallthrough
                                     case .CriticalAlert:
                                         if #available(iOS 12.0, *) {
-                                            if settings.criticalAlertSetting == .disabled {
+                                            if shouldRequestCriticalAlertAuthorization(settings) {
                                                 self.showRequestDialog(
                                                     channelKey: nil,
                                                     permissionsNeeded: permissionsNeeded,
-                                                    permissionsToRequest: listToShowRationale,
+                                                    permissionsToRequest: iosCriticalAlertAuthorizationPermissions(),
                                                     permissionCompletion: permissionCompletion)
                                                 return
                                             }

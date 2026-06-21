@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.12.3] - 2026-06-21
+### Fixed
+- **Critical Alerts iOS false positive:** When base notifications were already granted, iOS could report `criticalAlertSetting == .notSupported` before the first explicit request even with a valid Apple entitlement. The permission flow now distinguishes a missing entitlement from this iOS quirk and calls `requestAuthorization` with Alert, Sound, Badge, and CriticalAlert as required by Apple.
+
 ## [0.12.2] - 2026-06-21
 ### Added
 - **`getPermissionStatuses()`** and `NotificationPermissionStatus` enum for explicit permission status mapping (`granted`, `denied`, `notDetermined`, `notSupported`).
