@@ -84,6 +84,7 @@ public class PermissionManager {
         
         let current = UNUserNotificationCenter.current()
         current.getNotificationSettings(completionHandler: { (settings) in
+            CriticalAlertUtils.updateCache(from: settings)
             
             if settings.authorizationStatus == .notDetermined {
                 // The user hasnt decided yet if he authorizes or not
@@ -120,6 +121,7 @@ public class PermissionManager {
             }
             
             UNUserNotificationCenter.current().getNotificationSettings(completionHandler: { iOSpermissions in
+                CriticalAlertUtils.updateCache(from: iOSpermissions)
                 
                 for permission in permissions {
                     if let permissionEnum:NotificationPermission = NotificationPermission.fromString(permission) {
@@ -192,6 +194,7 @@ public class PermissionManager {
             }
             
             UNUserNotificationCenter.current().getNotificationSettings(completionHandler: { iOSpermissions in
+                CriticalAlertUtils.updateCache(from: iOSpermissions)
                 
                 // (Settings != .Disabled == .Enabled & .NotSupported /*Emulator limitations*/)
                 for permission in permissions {
@@ -278,6 +281,7 @@ public class PermissionManager {
     public func isSpecifiedPermissionGloballyAllowed(_ permission:String, channel:String?, completion: @escaping (Bool) -> ()){
 
         UNUserNotificationCenter.current().getNotificationSettings(completionHandler: { iOSpermissions in
+            CriticalAlertUtils.updateCache(from: iOSpermissions)
             
             // (Settings != .Disabled == .Enabled & .NotSupported /*Emulator limitations*/)
             switch NotificationPermission.fromString(permission) {
@@ -394,6 +398,7 @@ public class PermissionManager {
                 
                 else {
                     UNUserNotificationCenter.current().getNotificationSettings { (settings) in
+                        CriticalAlertUtils.updateCache(from: settings)
                         
                         var isAllowed:Bool = false
                         if #available(iOS 12.0, *) {
@@ -418,7 +423,7 @@ public class PermissionManager {
                                         return
                                     }
                                     permissionsRequested = permissionsRequested.filter {
-                                        ![NotificationPermission.CriticalAlert.rawValue, NotificationPermission.CriticalAlert.rawValue].contains($0)
+                                        ![NotificationPermission.CriticalAlert.rawValue, NotificationPermission.OverrideDnD.rawValue].contains($0)
                                     }
                                 }
                             }
@@ -500,6 +505,7 @@ public class PermissionManager {
         
         let iOSpermissions:UNAuthorizationOptions = getIosPermissionsCode(permissionsToRequest)
         UNUserNotificationCenter.current().requestAuthorization(options: iOSpermissions) { (granted, error) in
+            CriticalAlertUtils.clearCache()
 
             if granted {
                 Logger.shared.d("PermissionManager", "Permissions enabled successfully")
