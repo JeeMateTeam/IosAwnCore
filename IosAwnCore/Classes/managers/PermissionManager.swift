@@ -84,6 +84,8 @@ public class PermissionManager {
         
         let current = UNUserNotificationCenter.current()
         current.getNotificationSettings(completionHandler: { (settings) in
+            CriticalAlertUtils.updateCache(from: settings)
+            
             if settings.authorizationStatus == .notDetermined {
                 // The user hasnt decided yet if he authorizes or not
                 permissionCompletion(false)
@@ -134,6 +136,8 @@ public class PermissionManager {
             }
             
             UNUserNotificationCenter.current().getNotificationSettings(completionHandler: { iOSpermissions in
+                CriticalAlertUtils.updateCache(from: iOSpermissions)
+                
                 for permission in permissions {
                     if let permissionEnum:NotificationPermission = NotificationPermission.fromString(permission) {
                         switch permissionEnum {
@@ -206,6 +210,8 @@ public class PermissionManager {
             }
             
             UNUserNotificationCenter.current().getNotificationSettings(completionHandler: { iOSpermissions in
+                CriticalAlertUtils.updateCache(from: iOSpermissions)
+                
                 // (Settings != .Disabled == .Enabled & .NotSupported /*Emulator limitations*/)
                 for permission in permissions {
                     if let permissionEnum:NotificationPermission = NotificationPermission.fromString(permission) {
@@ -291,6 +297,7 @@ public class PermissionManager {
     public func isSpecifiedPermissionGloballyAllowed(_ permission:String, channel:String?, completion: @escaping (Bool) -> ()){
 
         UNUserNotificationCenter.current().getNotificationSettings(completionHandler: { iOSpermissions in
+            CriticalAlertUtils.updateCache(from: iOSpermissions)
             
             // (Settings != .Disabled == .Enabled & .NotSupported /*Emulator limitations*/)
             switch NotificationPermission.fromString(permission) {
@@ -380,6 +387,135 @@ public class PermissionManager {
         return false
     }
 
+    public func getPermissionStatuses(
+        _ permissions:[String],
+        filteringByChannelKey channelKey:String?,
+        whenGotResults completion: @escaping ([String:String]) -> ()
+    ) {
+        if SwiftUtils.isRunningOnExtension() {
+            var statuses:[String:String] = [:]
+            for permission in permissions {
+                statuses[permission] = NotificationPermissionStatus.granted.rawValue
+            }
+            completion(statuses)
+            return
+        }
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            CriticalAlertUtils.updateCache(from: settings)
+
+            var statuses:[String:String] = [:]
+            for permission in permissions {
+                statuses[permission] = self.resolvePermissionStatus(
+                    permission: permission,
+                    settings: settings,
+                    channelKey: channelKey)
+            }
+            completion(statuses)
+        }
+    }
+
+    private func resolvePermissionStatus(
+        permission:String,
+        settings:UNNotificationSettings,
+        channelKey:String?
+    ) -> String {
+        guard let permissionEnum = NotificationPermission.fromString(permission) else {
+            return NotificationPermissionStatus.notSupported.rawValue
+        }
+
+        switch permissionEnum {
+            case .CriticalAlert, .OverrideDnD:
+                return resolveCriticalAlertPermissionStatus(settings: settings)
+
+            case .Alert:
+                return resolveNotificationSettingStatus(
+                    settings: settings,
+                    setting: settings.alertSetting)
+
+            case .Sound:
+                return resolveNotificationSettingStatus(
+                    settings: settings,
+                    setting: settings.soundSetting)
+
+            case .Badge:
+                return resolveNotificationSettingStatus(
+                    settings: settings,
+                    setting: settings.badgeSetting)
+
+            case .Car:
+                return resolveNotificationSettingStatus(
+                    settings: settings,
+                    setting: settings.carPlaySetting)
+
+            case .Provisional:
+                if #available(iOS 12.0, *) {
+                    if settings.authorizationStatus == .provisional {
+                        return NotificationPermissionStatus.granted.rawValue
+                    }
+                    if settings.authorizationStatus == .notDetermined {
+                        return NotificationPermissionStatus.notDetermined.rawValue
+                    }
+                    if settings.authorizationStatus == .denied {
+                        return NotificationPermissionStatus.denied.rawValue
+                    }
+                    return NotificationPermissionStatus.notDetermined.rawValue
+                }
+                return NotificationPermissionStatus.notSupported.rawValue
+
+            default:
+                if channelKey == nil ||
+                    isSpecifiedChannelPermissionAllowed(
+                        channelKey: channelKey!,
+                        permissionEnum: permissionEnum) {
+                    return NotificationPermissionStatus.granted.rawValue
+                }
+                return NotificationPermissionStatus.denied.rawValue
+        }
+    }
+
+    private func resolveNotificationSettingStatus(
+        settings:UNNotificationSettings,
+        setting:UNNotificationSetting
+    ) -> String {
+        if settings.authorizationStatus == .notDetermined {
+            return NotificationPermissionStatus.notDetermined.rawValue
+        }
+        if settings.authorizationStatus == .denied {
+            return NotificationPermissionStatus.denied.rawValue
+        }
+        switch setting {
+            case .enabled:
+                return NotificationPermissionStatus.granted.rawValue
+            case .notSupported:
+                return NotificationPermissionStatus.notSupported.rawValue
+            default:
+                return NotificationPermissionStatus.denied.rawValue
+        }
+    }
+
+    @available(iOS 12.0, *)
+    private func resolveCriticalAlertPermissionStatus(
+        settings:UNNotificationSettings
+    ) -> String {
+        switch settings.criticalAlertSetting {
+            case .enabled:
+                return NotificationPermissionStatus.granted.rawValue
+            case .notSupported:
+                return NotificationPermissionStatus.notSupported.rawValue
+            default:
+                break
+        }
+
+        if settings.authorizationStatus == .notDetermined {
+            return NotificationPermissionStatus.notDetermined.rawValue
+        }
+        if settings.authorizationStatus == .denied {
+            return NotificationPermissionStatus.denied.rawValue
+        }
+        return NotificationPermissionStatus.notDetermined.rawValue
+    }
+
     private func isBaseNotificationAuthorizationGranted(_ settings: UNNotificationSettings) -> Bool {
         if #available(iOS 12.0, *) {
             return settings.authorizationStatus == .authorized ||
@@ -453,6 +589,7 @@ public class PermissionManager {
                 
                 else {
                     UNUserNotificationCenter.current().getNotificationSettings { (settings) in
+                        CriticalAlertUtils.updateCache(from: settings)
                         
                         var isAllowed:Bool = false
                         if #available(iOS 12.0, *) {
@@ -568,6 +705,7 @@ public class PermissionManager {
         
         let iOSpermissions:UNAuthorizationOptions = getIosPermissionsCode(permissionsToRequest)
         UNUserNotificationCenter.current().requestAuthorization(options: iOSpermissions) { (granted, error) in
+            CriticalAlertUtils.clearCache()
 
             if granted {
                 Logger.shared.d("PermissionManager", "Permissions enabled successfully")

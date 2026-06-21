@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- **iOS critical alerts support:** `CriticalAlertUtils`, `interruptionLevel.critical`, and `UNNotificationSound.defaultCritical` when Apple entitlement and user permission are available, with graceful fallback otherwise.
+- **`getPermissionStatuses()`** and `NotificationPermissionStatus` enum for explicit permission status mapping (`granted`, `denied`, `notDetermined`, `notSupported`).
 ### Fixed
 - **Critical Alert permission flow:** When base notifications were already granted, requesting `CriticalAlert` could skip the system dialog and open Settings without calling `requestAuthorization(options: [.criticalAlert])`, so the Critical Alerts toggle never appeared in iOS Settings.
 - **`NotificationChannelModel.toMap()`** exported `locked` instead of `criticalAlerts`, corrupting persisted channels.
