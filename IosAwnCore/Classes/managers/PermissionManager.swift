@@ -502,7 +502,7 @@ public class PermissionManager {
             case .enabled:
                 return NotificationPermissionStatus.granted.rawValue
             case .notSupported:
-                if isBaseNotificationAuthorizationGranted(settings) {
+                if self.isBaseNotificationAuthorizationGranted(settings) {
                     return NotificationPermissionStatus.notDetermined.rawValue
                 }
                 return NotificationPermissionStatus.notSupported.rawValue
@@ -571,7 +571,7 @@ public class PermissionManager {
         guard isBaseNotificationAuthorizationGranted(settings) else { return false }
         guard settings.criticalAlertSetting != .enabled else { return false }
 
-        if isCriticalAlertEntitlementMissing(settings) {
+        if self.isCriticalAlertEntitlementMissing(settings) {
             Logger.shared.e(self.TAG,
                 "Critical Alerts are not available for this project. " +
                 "You must require Apple special permissions to use it. " +
@@ -580,11 +580,11 @@ public class PermissionManager {
             return true
         }
 
-        if shouldRequestCriticalAlertAuthorization(settings) {
+        if self.shouldRequestCriticalAlertAuthorization(settings) {
             self.showRequestDialog(
                 channelKey: nil,
                 permissionsNeeded: permissionsNeeded,
-                permissionsToRequest: iosCriticalAlertAuthorizationPermissions(),
+                permissionsToRequest: self.iosCriticalAlertAuthorizationPermissions(),
                 permissionCompletion: permissionCompletion)
             return true
         }
@@ -634,7 +634,7 @@ public class PermissionManager {
                         if #available(iOS 12.0, *) {
                             if permissionsRequested.contains(NotificationPermission.CriticalAlert.rawValue) ||
                                 permissionsRequested.contains(NotificationPermission.OverrideDnD.rawValue){
-                                if isCriticalAlertEntitlementMissing(settings) {
+                                if self.isCriticalAlertEntitlementMissing(settings) {
                                     Logger.shared.e(self.TAG,
                                         "Critical Alerts are not available for this project. " +
                                         "You must require Apple special permissions to use it. " +
@@ -690,11 +690,11 @@ public class PermissionManager {
                                     case .OverrideDnD: fallthrough
                                     case .CriticalAlert:
                                         if #available(iOS 12.0, *) {
-                                            if shouldRequestCriticalAlertAuthorization(settings) {
+                                            if self.shouldRequestCriticalAlertAuthorization(settings) {
                                                 self.showRequestDialog(
                                                     channelKey: nil,
                                                     permissionsNeeded: permissionsNeeded,
-                                                    permissionsToRequest: iosCriticalAlertAuthorizationPermissions(),
+                                                    permissionsToRequest: self.iosCriticalAlertAuthorizationPermissions(),
                                                     permissionCompletion: permissionCompletion)
                                                 return
                                             }

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.12.4] - 2026-06-21
+### Fixed
+- **Swift compile error:** Added explicit `self.` for critical alert helper calls inside escaping closures (`isCriticalAlertEntitlementMissing`, `shouldRequestCriticalAlertAuthorization`, `iosCriticalAlertAuthorizationPermissions`).
+
 ## [0.12.3] - 2026-06-21
 ### Fixed
 - **Critical Alerts iOS false positive:** When base notifications were already granted, iOS could report `criticalAlertSetting == .notSupported` before the first explicit request even with a valid Apple entitlement. The permission flow now distinguishes a missing entitlement from this iOS quirk and calls `requestAuthorization` with Alert, Sound, Badge, and CriticalAlert as required by Apple.
